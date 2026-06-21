@@ -43,6 +43,19 @@
   .receipt-id{font-family:'Courier New',monospace;font-size:15px;background:#f1f3f6;border-radius:8px;padding:6px 10px;display:inline-block}
   .big-ok{width:60px;height:60px;border-radius:50%;background:#eaf8ec;color:var(--verde);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px}
   .foot{font-size:11px;color:#99a;text-align:center;margin-top:24px;line-height:1.5}
+  .chip{display:inline-block;background:#eef7ef;border:1px solid #cfe9d2;color:var(--verde);font-weight:700;font-size:14px;padding:8px 14px;border-radius:999px;margin-bottom:18px}
+  .grade{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
+  .tile{position:relative;aspect-ratio:1/1;border-radius:14px;overflow:hidden;border:1px solid var(--linha);background:#fff}
+  .tile img{width:100%;height:100%;object-fit:cover;display:block}
+  .tile .cap{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.8));color:#fff;padding:20px 10px 8px;font-size:14px;font-weight:700}
+  .tile .cap small{display:block;font-family:'Courier New',monospace;font-weight:400;font-size:11px;opacity:.92;word-break:break-all;margin-top:2px}
+  .tile .rm{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:none;font-size:18px;line-height:1;cursor:pointer}
+  .add{display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:1/1;border:2.5px dashed #b7c2cd;border-radius:14px;background:#fafbfc;cursor:pointer;text-align:center;padding:8px}
+  .add .plus{font-size:48px;line-height:.9;font-weight:300;color:var(--verde)}
+  .add .lbl{font-size:14px;font-weight:700;color:#2b3440;margin-top:8px}
+  .add:active{transform:translateY(1px);background:#f0f3f6}
+  .btn.finalize{background:#fff;color:var(--preto);border:1.5px solid var(--linha)}
+  .btn.finalize.ready{background:var(--verde);color:#fff;border:none}
   #reader-temp{display:none}
   .hidden{display:none}
 </style></head><body>
@@ -69,16 +82,15 @@
   <!-- ETAPA 2: PACOTES -->
   <section id="step-pacotes" class="card hidden">
     <h2>Fotografe cada pacote</h2>
-    <p class="sub">Tire uma foto de cada pacote mostrando bem a <b>etiqueta com o código de barras</b> e o que você escreveu. O app lê o código sozinho.</p>
+    <p class="sub">1 foto por pacote, mostrando a <b>etiqueta com o código de barras</b>. Tem 3 pacotes? São 3 fotos.</p>
+    <div class="chip">📷 1 foto por pacote</div>
 
-    <div id="lista"></div>
-    <div class="count" id="contador">Nenhum pacote ainda.</div>
+    <div id="grade" class="grade"></div>
+    <div class="status" id="status"></div>
+    <div class="count" id="contador">Nenhum pacote ainda. Comece pela primeira foto.</div>
 
     <input id="foto-input" type="file" accept="image/*" capture="environment" class="hidden">
-    <button class="btn dark" id="btn-foto">📷 Fotografar pacote</button>
-    <div class="status" id="status"></div>
-
-    <button class="btn" id="btn-finalizar" disabled>Gerar comprovante ✓</button>
+    <button class="btn finalize" id="btn-finalizar" disabled>Fotografe ao menos 1 pacote</button>
     <div id="reader-temp"></div>
   </section>
 
@@ -121,8 +133,7 @@ $("btn-comecar").addEventListener("click", ()=>{
   show("step-pacotes"); renderLista();
 });
 
-// ---- etapa 2: foto -> lê barcode da imagem
-$("btn-foto").addEventListener("click", ()=> $("foto-input").click());
+// ---- etapa 2: foto -> lê barcode da imagem (o card "+" da grade dispara o input)
 $("foto-input").addEventListener("change", async (e)=>{
   const file = e.target.files[0]; if(!file) return;
   e.target.value = ""; // permite refotografar o mesmo
@@ -132,19 +143,20 @@ $("foto-input").addEventListener("change", async (e)=>{
     const djp = (await scanner.scanFile(file, false) || "").trim();
     if(!djp){ throw new Error("vazio"); }
     if(!/^DJP/i.test(djp)){
-      setStatus("err","Li o código \""+djp+"\", mas ele não parece a etiqueta DJP (deve começar com DJP). Fotografe focando no código de barras da mini etiqueta.");
+      setStatus("err","Essa foto não mostra a etiqueta DJP. Aproxime e fotografe o código de barras da mini etiqueta.");
       return;
     }
     if(pacotes.some(p=>p.djp===djp)){
-      setStatus("err","Esse pacote ("+djp+") já foi registrado.");
+      setStatus("err","Esse pacote ("+djp+") você já fotografou. Pode ir pro próximo.");
       return;
     }
     const dataUrl = await compressImage(file, 1280, 0.7); // comprime p/ upload/armazenamento
     pacotes.push({ djp, dataUrl, ts: new Date().toISOString() });
-    setStatus("ok","Pacote registrado: "+djp);
     renderLista();
+    setStatus("ok",`✓ Pacote ${pacotes.length} salvo. Tem mais? Toque em "Próximo pacote".`);
+    clearTimeout(window._st); window._st=setTimeout(()=>{ const s=$("status"); if(s.classList.contains("ok")) s.className="status"; }, 5000);
   }catch(err){
-    setStatus("err","Não consegui ler o código de barras. Tire a foto de novo, focando na etiqueta (sem borrão, com luz).");
+    setStatus("err","Não consegui ler o código. Fotografe de novo, de perto, com luz e sem tremer.");
   }finally{
     try{ await scanner.clear(); }catch(e){}
   }
@@ -152,16 +164,26 @@ $("foto-input").addEventListener("change", async (e)=>{
 
 function setStatus(kind,msg){ const s=$("status"); s.className="status "+kind; s.textContent=msg; }
 function renderLista(){
-  const l=$("lista"); l.innerHTML="";
+  const g=$("grade"); g.innerHTML="";
   pacotes.forEach((p,i)=>{
-    const d=document.createElement("div"); d.className="pkg";
-    d.innerHTML=`<img src="${p.dataUrl}"><div><div class="code">${p.djp}</div><div class="meta">Pacote ${i+1}</div></div>`;
-    const b=document.createElement("button"); b.className="rm"; b.textContent="remover";
-    b.onclick=()=>{ pacotes.splice(i,1); renderLista(); };
-    d.appendChild(b); l.appendChild(d);
+    const t=document.createElement("div"); t.className="tile";
+    t.innerHTML=`<img src="${p.dataUrl}"><div class="cap">Pacote ${i+1}<small>${p.djp}</small></div>`;
+    const x=document.createElement("button"); x.className="rm"; x.innerHTML="&times;"; x.setAttribute("aria-label","remover");
+    x.onclick=()=>{ pacotes.splice(i,1); renderLista(); };
+    t.appendChild(x); g.appendChild(t);
   });
-  $("contador").textContent = pacotes.length? `${pacotes.length} pacote(s) registrado(s)` : "Nenhum pacote ainda.";
-  $("btn-finalizar").disabled = pacotes.length===0;
+  // card "+" de adicionar — sempre o último da grade
+  const add=document.createElement("div"); add.className="add";
+  add.innerHTML=`<div class="plus">+</div><div class="lbl">${pacotes.length? "Próximo pacote":"Fotografar 1º pacote"}</div>`;
+  add.onclick=()=> $("foto-input").click();
+  g.appendChild(add);
+
+  const n=pacotes.length;
+  $("contador").textContent = n? `${n} pacote(s) fotografado(s)` : "Nenhum pacote ainda. Comece pela primeira foto.";
+  const fin=$("btn-finalizar");
+  fin.disabled = n===0;
+  fin.classList.toggle("ready", n>0);
+  fin.textContent = n? `Pronto — gerar comprovante (${n})` : "Fotografe ao menos 1 pacote";
 }
 
 // ---- etapa 3: recibo
