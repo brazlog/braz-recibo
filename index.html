@@ -1,0 +1,206 @@
+<!doctype html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Comprovante de Postagem — Braz Log</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root{ --verde:#1f9d2f; --verde-claro:#65F643; --preto:#0c0c0c; --cinza:#667; --linha:#e6e8ec; --bg:#f5f6f8; }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,'Segoe UI',Roboto,system-ui,sans-serif;background:var(--bg);color:var(--preto);
+    line-height:1.45;padding-bottom:40px}
+  header{background:var(--preto);color:#fff;padding:18px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:5}
+  header .logo{font-weight:800;font-size:18px;letter-spacing:.02em}
+  header .logo b{color:var(--verde-claro)}
+  header .tag{margin-left:auto;font-size:12px;color:#9aa;letter-spacing:.06em;text-transform:uppercase}
+  .wrap{max-width:560px;margin:0 auto;padding:20px}
+  .card{background:#fff;border:1px solid var(--linha);border-radius:16px;padding:22px;margin-bottom:16px}
+  h1{font-size:22px;line-height:1.2;margin-bottom:8px}
+  h2{font-size:16px;margin:0 0 12px}
+  p.sub{color:var(--cinza);font-size:15px;margin-bottom:18px}
+  label{display:block;font-size:13px;font-weight:700;color:#445;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+  input[type=text],input[type=tel],input[type=email]{width:100%;font-size:17px;padding:14px;border:1.5px solid var(--linha);
+    border-radius:11px;background:#fbfbfc}
+  input:focus{outline:none;border-color:var(--verde)}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-size:17px;font-weight:700;
+    padding:16px;border:none;border-radius:12px;background:var(--verde);color:#fff;cursor:pointer;margin-top:18px}
+  .btn:active{transform:translateY(1px)}
+  .btn[disabled]{opacity:.45}
+  .btn.ghost{background:#fff;color:var(--preto);border:1.5px solid var(--linha)}
+  .btn.dark{background:var(--preto)}
+  .hint{font-size:13px;color:var(--cinza);margin-top:10px;text-align:center}
+  .lock{font-size:12px;color:var(--cinza);background:#eef7ef;border:1px solid #cfe9d2;border-radius:10px;
+    padding:10px 12px;margin-top:16px}
+  .pkg{display:flex;gap:12px;align-items:center;border:1px solid var(--linha);border-radius:12px;padding:10px;margin-bottom:10px;background:#fff}
+  .pkg img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--linha)}
+  .pkg .code{font-family:'Courier New',monospace;font-weight:700;font-size:14px;word-break:break-all}
+  .pkg .meta{font-size:12px;color:var(--cinza)}
+  .pkg .rm{margin-left:auto;color:#c33;font-size:13px;background:none;border:none;cursor:pointer;padding:6px}
+  .status{font-size:14px;padding:12px;border-radius:10px;margin-top:14px;display:none}
+  .status.err{display:block;background:#fdecec;border:1px solid #f3bcbc;color:#a11}
+  .status.ok{display:block;background:#eef7ef;border:1px solid #cfe9d2;color:#1a7d2a}
+  .status.wait{display:block;background:#eef2fb;border:1px solid #cdd9f3;color:#345}
+  .count{font-size:13px;color:var(--cinza);text-align:center;margin:8px 0 0}
+  .receipt-id{font-family:'Courier New',monospace;font-size:15px;background:#f1f3f6;border-radius:8px;padding:6px 10px;display:inline-block}
+  .big-ok{width:60px;height:60px;border-radius:50%;background:#eaf8ec;color:var(--verde);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px}
+  .foot{font-size:11px;color:#99a;text-align:center;margin-top:24px;line-height:1.5}
+  #reader-temp{display:none}
+  .hidden{display:none}
+</style></head><body>
+
+<header>
+  <span class="logo">BRAZ<b>LOG</b></span>
+  <span class="tag">Comprovante de postagem</span>
+</header>
+
+<div class="wrap">
+
+  <!-- ETAPA 1: DADOS -->
+  <section id="step-dados" class="card">
+    <h1>Registre seus pacotes</h1>
+    <p class="sub">É rápido e opcional. Serve pra você ter um comprovante caso aconteça algum problema com o envio depois.</p>
+    <label>Seu nome</label>
+    <input id="nome" type="text" placeholder="Nome completo" autocomplete="name">
+    <label>Seu WhatsApp / telefone</label>
+    <input id="tel" type="tel" placeholder="(47) 9 9999-9999" autocomplete="tel">
+    <button class="btn" id="btn-comecar" disabled>Começar →</button>
+    <div class="lock">🔒 Seus dados ficam só com a Braz Log e são usados apenas se houver um problema com seu pacote.</div>
+  </section>
+
+  <!-- ETAPA 2: PACOTES -->
+  <section id="step-pacotes" class="card hidden">
+    <h2>Fotografe cada pacote</h2>
+    <p class="sub">Tire uma foto de cada pacote mostrando bem a <b>etiqueta com o código de barras</b> e o que você escreveu. O app lê o código sozinho.</p>
+
+    <div id="lista"></div>
+    <div class="count" id="contador">Nenhum pacote ainda.</div>
+
+    <input id="foto-input" type="file" accept="image/*" capture="environment" class="hidden">
+    <button class="btn dark" id="btn-foto">📷 Fotografar pacote</button>
+    <div class="status" id="status"></div>
+
+    <button class="btn" id="btn-finalizar" disabled>Gerar comprovante ✓</button>
+    <div id="reader-temp"></div>
+  </section>
+
+  <!-- ETAPA 3: RECIBO -->
+  <section id="step-recibo" class="card hidden">
+    <div class="big-ok">✓</div>
+    <h1 style="text-align:center">Comprovante gerado</h1>
+    <p class="sub" style="text-align:center">Guarde este comprovante. Tire um print ou envie pro nosso WhatsApp.</p>
+    <p style="text-align:center;margin-bottom:8px">Nº <span class="receipt-id" id="r-id"></span></p>
+    <p style="text-align:center;color:var(--cinza);font-size:14px" id="r-data"></p>
+    <div style="margin:18px 0">
+      <div style="font-size:13px;color:var(--cinza)" id="r-cliente"></div>
+    </div>
+    <div id="r-lista"></div>
+    <button class="btn" id="btn-whats">📲 Enviar pro WhatsApp da Braz Log</button>
+    <button class="btn ghost" id="btn-print">🖨️ Salvar / imprimir</button>
+    <button class="btn ghost" id="btn-novo">Registrar outro cliente</button>
+  </section>
+
+  <div class="foot">
+    Comprovante de que os pacotes foram deixados na Braz Log na data/hora indicadas.<br>
+    Não constitui garantia de despacho. Av. Brasil 1148, Sala 42 — Balneário Camboriú.
+  </div>
+</div>
+
+<script>
+const WHATS_LOJA = "5547999029331";
+let pacotes = []; // {djp, dataUrl, ts}
+let cliente = {nome:"", tel:""};
+
+const $ = id => document.getElementById(id);
+function show(step){ ["step-dados","step-pacotes","step-recibo"].forEach(s=>$(s).classList.toggle("hidden", s!==step)); window.scrollTo(0,0); }
+
+// ---- etapa 1
+function checkDados(){ $("btn-comecar").disabled = !($("nome").value.trim() && $("tel").value.trim().length>=8); }
+$("nome").addEventListener("input", checkDados);
+$("tel").addEventListener("input", checkDados);
+$("btn-comecar").addEventListener("click", ()=>{
+  cliente.nome = $("nome").value.trim(); cliente.tel = $("tel").value.trim();
+  show("step-pacotes"); renderLista();
+});
+
+// ---- etapa 2: foto -> lê barcode da imagem
+$("btn-foto").addEventListener("click", ()=> $("foto-input").click());
+$("foto-input").addEventListener("change", async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  e.target.value = ""; // permite refotografar o mesmo
+  setStatus("wait","Lendo o código de barras da foto…");
+  const dataUrl = await fileToDataUrl(file);
+  const scanner = new Html5Qrcode("reader-temp", { verbose:false });
+  try{
+    const djp = (await scanner.scanFile(file, false) || "").trim();
+    if(!djp){ throw new Error("vazio"); }
+    pacotes.push({ djp, dataUrl, ts: new Date().toISOString() });
+    setStatus("ok","Pacote registrado: "+djp);
+    renderLista();
+  }catch(err){
+    setStatus("err","Não consegui ler o código de barras. Tire a foto de novo, focando na etiqueta (sem borrão, com luz).");
+  }finally{
+    try{ await scanner.clear(); }catch(e){}
+  }
+});
+
+function setStatus(kind,msg){ const s=$("status"); s.className="status "+kind; s.textContent=msg; }
+function renderLista(){
+  const l=$("lista"); l.innerHTML="";
+  pacotes.forEach((p,i)=>{
+    const d=document.createElement("div"); d.className="pkg";
+    d.innerHTML=`<img src="${p.dataUrl}"><div><div class="code">${p.djp}</div><div class="meta">Pacote ${i+1}</div></div>`;
+    const b=document.createElement("button"); b.className="rm"; b.textContent="remover";
+    b.onclick=()=>{ pacotes.splice(i,1); renderLista(); };
+    d.appendChild(b); l.appendChild(d);
+  });
+  $("contador").textContent = pacotes.length? `${pacotes.length} pacote(s) registrado(s)` : "Nenhum pacote ainda.";
+  $("btn-finalizar").disabled = pacotes.length===0;
+}
+
+// ---- etapa 3: recibo
+$("btn-finalizar").addEventListener("click", ()=>{
+  const id = gerarId();
+  const agora = new Date();
+  $("r-id").textContent = id;
+  $("r-data").textContent = agora.toLocaleString("pt-BR");
+  $("r-cliente").textContent = `${cliente.nome} · ${cliente.tel}`;
+  const rl=$("r-lista"); rl.innerHTML="";
+  pacotes.forEach((p,i)=>{
+    const d=document.createElement("div"); d.className="pkg";
+    d.innerHTML=`<img src="${p.dataUrl}"><div><div class="code">${p.djp}</div><div class="meta">Pacote ${i+1}</div></div>`;
+    rl.appendChild(d);
+  });
+  window._recibo = { id, data: agora.toLocaleString("pt-BR") };
+  show("step-recibo");
+});
+
+$("btn-whats").addEventListener("click", async ()=>{
+  const r = window._recibo;
+  const linhas = pacotes.map((p,i)=>`${i+1}) ${p.djp}`).join("\n");
+  const texto = `*Comprovante Braz Log* nº ${r.id}\n${r.data}\nCliente: ${cliente.nome} (${cliente.tel})\n\nPacotes deixados:\n${linhas}\n\n(vou anexar as fotos dos pacotes aqui)`;
+  // tenta compartilhar foto + texto direto (Android); senão, wa.me só com texto
+  try{
+    const files = await Promise.all(pacotes.map((p,i)=>dataUrlToFile(p.dataUrl, `pacote-${i+1}.jpg`)));
+    if(navigator.canShare && navigator.canShare({files})){
+      await navigator.share({ files, text: texto });
+      return;
+    }
+  }catch(e){}
+  window.open(`https://wa.me/${WHATS_LOJA}?text=${encodeURIComponent(texto)}`, "_blank");
+});
+
+$("btn-print").addEventListener("click", ()=> window.print());
+$("btn-novo").addEventListener("click", ()=>{
+  pacotes=[]; cliente={nome:"",tel:""}; $("nome").value=""; $("tel").value=""; checkDados(); renderLista(); show("step-dados");
+});
+
+// ---- utils
+function gerarId(){
+  const d=new Date();
+  const p=n=>String(n).padStart(2,"0");
+  const rnd=Math.floor(1000+Math.random()*9000);
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}-${rnd}`;
+}
+function fileToDataUrl(file){ return new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); }); }
+async function dataUrlToFile(dataUrl, name){ const res=await fetch(dataUrl); const blob=await res.blob(); return new File([blob], name, {type:blob.type||"image/jpeg"}); }
+</script>
+</body></html>
