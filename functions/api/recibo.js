@@ -4,6 +4,24 @@
 
 export async function onRequestPost(context) {
   const { request, env } = context;
+
+  // --- anti-abuso 1: só aceita requisição vinda do próprio app ---
+  const allow = /^https:\/\/([a-z0-9-]+\.)?braz-recibo\.pages\.dev/;
+  const origin = request.headers.get("Origin") || "";
+  const ref = request.headers.get("Referer") || "";
+  if (!(allow.test(origin) || allow.test(ref))) return json({ ok: false, error: "origem nao permitida" }, 403);
+
+  // --- anti-abuso 2: limite por IP (~10 envios / 10 min, via cache de borda) ---
+  try {
+    const ip = request.headers.get("CF-Connecting-IP") || "0";
+    const cache = caches.default;
+    const key = new Request("https://rl.internal/recibo/" + ip);
+    const hit = await cache.match(key);
+    const count = hit ? (parseInt(await hit.text()) || 0) : 0;
+    if (count >= 10) return json({ ok: false, error: "muitas tentativas, aguarde alguns minutos" }, 429);
+    await cache.put(key, new Response(String(count + 1), { headers: { "Cache-Control": "max-age=600" } }));
+  } catch (e) { /* se o cache falhar, segue normal */ }
+
   const NB = env.NOCODB_URL, TK = env.NOCODB_TOKEN, TBL = env.NOCODB_TABLE;
   if (!NB || !TK || !TBL) return json({ ok: false, error: "config ausente" }, 500);
 
