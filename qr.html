@@ -1,0 +1,52 @@
+<!doctype html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR — Comprovante Braz Log</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{ --verde:#1f9d2f; --verde-claro:#65F643; --preto:#0c0c0c; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,'Segoe UI',Roboto,system-ui,sans-serif;background:#eef0f3;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px}
+  .poster{background:#fff;width:520px;max-width:100%;border-radius:24px;overflow:hidden;
+    box-shadow:0 14px 50px rgba(0,0,0,.14);text-align:center}
+  .top{background:var(--preto);color:#fff;padding:22px}
+  .top .logo{font-weight:800;font-size:22px;letter-spacing:.02em}
+  .top .logo b{color:var(--verde-claro)}
+  .body{padding:34px 36px 40px}
+  h1{font-size:30px;line-height:1.15;margin-bottom:10px}
+  p.sub{color:#566;font-size:17px;line-height:1.45;margin-bottom:26px}
+  #qr{display:flex;justify-content:center;margin:0 auto 22px;padding:18px;background:#fff;
+    border:2px solid #e6e8ec;border-radius:18px;width:max-content}
+  .steps{text-align:left;max-width:360px;margin:0 auto 22px;color:#334;font-size:16px;line-height:1.7}
+  .steps b{color:var(--verde)}
+  .url{font-family:'Courier New',monospace;font-size:15px;color:#7a8;background:#f3f5f7;
+    border-radius:10px;padding:8px 12px;display:inline-block}
+  .badge{margin-top:18px;font-size:13px;color:#8a93a0}
+  .badge b{color:var(--verde)}
+  @media print{ body{background:#fff;padding:0} .poster{box-shadow:none;border:1px solid #ddd} }
+</style></head><body>
+  <div class="poster">
+    <div class="top"><span class="logo">BRAZ<b>LOG</b></span></div>
+    <div class="body">
+      <h1>Deixou um pacote?<br>Garanta seu comprovante.</h1>
+      <p class="sub">Aponte a câmera do celular para o QR Code abaixo.</p>
+      <div id="qr"></div>
+      <div class="steps">
+        <div>1. <b>Escaneie</b> o QR com a câmera</div>
+        <div>2. <b>Fotografe</b> cada pacote</div>
+        <div>3. <b>Receba</b> seu comprovante na hora</div>
+      </div>
+      <span class="url">braz-recibo.pages.dev</span>
+      <div class="badge">🔒 Rápido e <b>opcional</b> — pra te dar segurança se houver qualquer problema com o envio.</div>
+    </div>
+  </div>
+<script>
+  new QRCode(document.getElementById("qr"), {
+    text: "https://braz-recibo.pages.dev/",
+    width: 300, height: 300,
+    colorDark: "#0c0c0c", colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M
+  });
+</script>
+</body></html>

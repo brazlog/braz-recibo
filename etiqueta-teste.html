@@ -1,0 +1,39 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Etiquetas de teste (DJP / Code128)</title>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:#eef0f3;padding:24px}
+  .head{max-width:760px;margin:0 auto 18px;color:#333}
+  .head h1{font-size:20px}
+  .head p{font-size:14px;color:#667;margin-top:4px}
+  .grid{max-width:760px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .label{background:#fff;border:1px solid #cfd6dd;border-radius:8px;padding:16px;text-align:center}
+  .label .brand{font-weight:800;font-size:14px;letter-spacing:.1em;color:#c5203a;text-align:left;margin-bottom:6px}
+  .label .brand span{color:#111}
+  .label svg{width:100%;height:auto}
+  .label .cli{margin-top:10px;border-top:1px dashed #bbb;padding-top:8px;font-size:12px;color:#555;text-align:left}
+  .label .cli b{color:#111}
+  @media print{ body{background:#fff} .head{display:none} .grid{gap:10px} .label{border:1px solid #999} }
+  @media (max-width:560px){ .grid{grid-template-columns:1fr} }
+</style></head><body>
+  <div class="head">
+    <h1>Etiquetas de teste — código DJP (Code128)</h1>
+    <p>Abra na tela e fotografe com o celular pelo app <b>braz-recibo.pages.dev</b>. Simula a mini etiqueta da JadLog. (Se a câmera ler da tela, lê melhor ainda no papel.)</p>
+  </div>
+  <div class="grid" id="grid"></div>
+
+<script>
+  const codigos = ["DJP04832119007","DJP04832119014","DJP04832119021","DJP04832119038"];
+  const grid = document.getElementById("grid");
+  codigos.forEach((cod,i)=>{
+    const el = document.createElement("div"); el.className="label";
+    el.innerHTML = `<div class="brand">Jad<span>Log</span> · mini etiqueta</div>
+      <svg id="bc${i}"></svg>
+      <div class="cli">Código do cliente (rastreio): <b>____________________</b></div>`;
+    grid.appendChild(el);
+    JsBarcode("#bc"+i, cod, {format:"CODE128", width:2.4, height:90, fontSize:18, margin:8, displayValue:true});
+  });
+</script>
+</body></html>

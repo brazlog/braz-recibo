@@ -1,0 +1,51 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>Teste de leitura Code128</title>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>body{font-family:monospace;padding:20px;font-size:18px}#out div{margin:6px 0}.ok{color:#0a0}.err{color:#c00}img{border:1px solid #ccc;margin:4px 0;display:block}</style>
+</head><body>
+<h3>Teste: html5-qrcode lê Code128 (formato DJP)?</h3>
+<div id="out">rodando…</div>
+<canvas id="cv" style="display:none"></canvas>
+<div id="reader" style="display:none"></div>
+<script>
+const CODE = "DJP240615009123";
+const out = document.getElementById("out");
+function log(msg, cls){ const d=document.createElement("div"); d.className=cls||""; d.textContent=msg; out.appendChild(d); }
+
+function makeBarcode(code, width, height, scale){
+  // gera Code128 num canvas, opcionalmente reduzido (simula foto de longe/baixa qualidade)
+  const c = document.createElement("canvas");
+  JsBarcode(c, code, {format:"CODE128", width:width, height:height, displayValue:true, margin:16, background:"#fff", lineColor:"#000"});
+  if(scale && scale!==1){
+    const small = document.createElement("canvas");
+    small.width = Math.round(c.width*scale); small.height = Math.round(c.height*scale);
+    small.getContext("2d").drawImage(c,0,0,small.width,small.height);
+    return small;
+  }
+  return c;
+}
+function canvasToFile(canvas){ return new Promise(res=>canvas.toBlob(b=>res(new File([b],"bc.png",{type:"image/png"})),"image/png")); }
+
+async function testar(label, canvas){
+  out.appendChild(Object.assign(document.createElement("img"),{src:canvas.toDataURL(),width:Math.min(canvas.width,360)}));
+  const file = await canvasToFile(canvas);
+  const scanner = new Html5Qrcode("reader",{verbose:false});
+  try{
+    const r = (await scanner.scanFile(file,false)||"").trim();
+    if(r===CODE) log(`✅ ${label}: leu CERTO → "${r}"`,"ok");
+    else log(`⚠️ ${label}: leu "${r}" (esperado ${CODE})`,"err");
+  }catch(e){ log(`❌ ${label}: NÃO leu (${e.message||e})`,"err"); }
+  finally{ try{await scanner.clear()}catch(e){} }
+}
+
+(async()=>{
+  out.innerHTML="";
+  log("Código de teste: "+CODE);
+  await testar("nítido (alta qualidade)", makeBarcode(CODE,3,120));
+  await testar("reduzido 50% (simula distância)", makeBarcode(CODE,3,120,0.5));
+  await testar("barras finas + reduzido (pior caso)", makeBarcode(CODE,2,80,0.6));
+  log("— fim —");
+})();
+</script>
+</body></html>

@@ -56,6 +56,10 @@
   .add:active{transform:translateY(1px);background:#f0f3f6}
   .btn.finalize{background:#fff;color:var(--preto);border:1.5px solid var(--linha)}
   .btn.finalize.ready{background:var(--verde);color:#fff;border:none}
+  .rsave{text-align:center;font-size:14px;margin:6px 0 0;min-height:20px}
+  .rsave.wait{color:#667}
+  .rsave.ok{color:#1a7d2a;font-weight:700}
+  .rsave.warn{color:#b06a00}
   #reader-temp{display:none}
   .hidden{display:none}
 </style></head><body>
@@ -101,6 +105,7 @@
     <p class="sub" style="text-align:center">Guarde este comprovante. Tire um print ou envie pro nosso WhatsApp.</p>
     <p style="text-align:center;margin-bottom:8px">Nº <span class="receipt-id" id="r-id"></span></p>
     <p style="text-align:center;color:var(--cinza);font-size:14px" id="r-data"></p>
+    <div id="r-save" class="rsave"></div>
     <div style="margin:18px 0">
       <div style="font-size:13px;color:var(--cinza)" id="r-cliente"></div>
     </div>
@@ -201,7 +206,24 @@ $("btn-finalizar").addEventListener("click", ()=>{
   });
   window._recibo = { id, data: agora.toLocaleString("pt-BR") };
   show("step-recibo");
+  saveToDB(id);
 });
+
+async function saveToDB(id){
+  const el = $("r-save"); if(el){ el.className="rsave wait"; el.textContent="Registrando na Braz Log…"; }
+  try{
+    const res = await fetch("/api/recibo", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ nome:cliente.nome, telefone:cliente.tel, recibo_id:id,
+        pacotes: pacotes.map(p=>({ djp:p.djp, foto:p.dataUrl })) })
+    });
+    const d = await res.json().catch(()=>({}));
+    if(res.ok && d.ok){ if(el){ el.className="rsave ok"; el.textContent="✓ Registrado na Braz Log"; } }
+    else throw new Error("falhou");
+  }catch(e){
+    if(el){ el.className="rsave warn"; el.textContent="Não deu pra registrar online agora — envie pelo WhatsApp abaixo pra garantir."; }
+  }
+}
 
 $("btn-whats").addEventListener("click", async ()=>{
   const r = window._recibo;
