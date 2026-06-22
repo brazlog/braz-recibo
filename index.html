@@ -28,8 +28,10 @@
   .btn.ghost{background:#fff;color:var(--preto);border:1.5px solid var(--linha)}
   .btn.dark{background:var(--preto)}
   .hint{font-size:13px;color:var(--cinza);margin-top:10px;text-align:center}
-  .lock{font-size:12px;color:var(--cinza);background:#eef7ef;border:1px solid #cfe9d2;border-radius:10px;
-    padding:10px 12px;margin-top:16px}
+  .lock{font-size:12.5px;line-height:1.45;color:#4a5560;background:#eef7ef;border:1px solid #cfe9d2;border-radius:10px;
+    padding:11px 13px;margin-top:16px}
+  .check{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;color:#334;margin-top:14px;cursor:pointer;text-transform:none;font-weight:400;letter-spacing:0}
+  .check input{width:22px;height:22px;flex:0 0 22px;margin-top:1px}
   .pkg{display:flex;gap:12px;align-items:center;border:1px solid var(--linha);border-radius:12px;padding:10px;margin-bottom:10px;background:#fff}
   .pkg img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--linha)}
   .pkg .code{font-family:'Courier New',monospace;font-weight:700;font-size:14px;word-break:break-all}
@@ -79,8 +81,9 @@
     <input id="nome" type="text" placeholder="Nome completo" autocomplete="name">
     <label>Seu WhatsApp / telefone</label>
     <input id="tel" type="tel" placeholder="(47) 9 9999-9999" autocomplete="tel">
+    <div class="lock">🔒 <b>Seus dados.</b> A Braz Log guarda seu nome, telefone e a foto do volume por <b>45 dias</b>, só pra comprovar que você deixou o pacote no balcão, caso haja disputa sobre o envio. Base legal: legítimo interesse e exercício de direito (LGPD, art. 7º, VI e IX). Não compartilhamos com terceiros nem usamos pra marketing; depois apagamos. Dúvidas ou exclusão: WhatsApp (47) 99902-9331.</div>
+    <label class="check"><input type="checkbox" id="consent"> <span>A foto é do meu volume e os dados são verdadeiros. Autorizo a Braz Log a guardar essas informações por 45 dias para comprovação.</span></label>
     <button class="btn" id="btn-comecar" disabled>Começar →</button>
-    <div class="lock">🔒 Guardamos seu nome, telefone e as fotos por até <b>45 dias</b>, só para comprovar a entrega caso haja problema com o envio. Usados pela Braz Log apenas para isso.</div>
   </section>
 
   <!-- ETAPA 2: PACOTES -->
@@ -100,9 +103,9 @@
 
   <!-- ETAPA 3: RECIBO -->
   <section id="step-recibo" class="card hidden">
-    <div class="big-ok">✓</div>
-    <h1 style="text-align:center">Comprovante gerado</h1>
-    <p class="sub" style="text-align:center">Guarde este comprovante. Tire um print ou envie pro nosso WhatsApp.</p>
+    <div class="big-ok">🕒</div>
+    <h1 style="text-align:center">Registro de entrega no balcão</h1>
+    <p class="sub" style="text-align:center">Comprova que você deixou este volume na Braz Log na data e hora abaixo. Não comprova conferência do conteúdo nem o envio pela transportadora. Guarde: tire um print ou envie pro WhatsApp.</p>
     <p style="text-align:center;margin-bottom:8px">Nº <span class="receipt-id" id="r-id"></span></p>
     <p style="text-align:center;color:var(--cinza);font-size:14px" id="r-data"></p>
     <div id="r-save" class="rsave"></div>
@@ -116,8 +119,9 @@
   </section>
 
   <div class="foot">
-    Comprovante de que os pacotes foram deixados na Braz Log na data/hora indicadas.<br>
-    Não constitui garantia de despacho. Av. Brasil 1148, Sala 42 — Balneário Camboriú.
+    Registro feito pelo próprio cliente do volume deixado no balcão na data/hora indicadas.
+    Não constitui conferência, guarda nem garantia de despacho — a Braz Log apenas disponibiliza o ponto de coleta; o despacho é de responsabilidade do cliente e da transportadora (JadLog).
+    Av. Brasil 1148, Sala 42 — Balneário Camboriú.
   </div>
 </div>
 
@@ -130,9 +134,10 @@ const $ = id => document.getElementById(id);
 function show(step){ ["step-dados","step-pacotes","step-recibo"].forEach(s=>$(s).classList.toggle("hidden", s!==step)); window.scrollTo(0,0); }
 
 // ---- etapa 1
-function checkDados(){ $("btn-comecar").disabled = !($("nome").value.trim() && $("tel").value.trim().length>=8); }
+function checkDados(){ $("btn-comecar").disabled = !($("nome").value.trim() && $("tel").value.trim().length>=8 && $("consent").checked); }
 $("nome").addEventListener("input", checkDados);
 $("tel").addEventListener("input", checkDados);
+$("consent").addEventListener("change", checkDados);
 $("btn-comecar").addEventListener("click", ()=>{
   cliente.nome = $("nome").value.trim(); cliente.tel = $("tel").value.trim();
   show("step-pacotes"); renderLista();
@@ -218,7 +223,7 @@ async function saveToDB(id){
         pacotes: pacotes.map(p=>({ djp:p.djp, foto:p.dataUrl })) })
     });
     const d = await res.json().catch(()=>({}));
-    if(res.ok && d.ok){ if(el){ el.className="rsave ok"; el.textContent="✓ Registrado na Braz Log"; } }
+    if(res.ok && d.ok){ if(el){ el.className="rsave ok"; el.textContent="🕒 Registro guardado"; } }
     else throw new Error("falhou");
   }catch(e){
     if(el){ el.className="rsave warn"; el.textContent="Não deu pra registrar online agora — envie pelo WhatsApp abaixo pra garantir."; }

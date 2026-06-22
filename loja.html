@@ -108,7 +108,7 @@ function render(recs){
   recs.forEach(rec=>{
     const dt = rec.criado ? new Date(rec.criado).toLocaleString("pt-BR") : "—";
     const c=document.createElement("div"); c.className="card";
-    c.innerHTML = `<div class="badge-ok">✓ Recebido na Braz Log</div>
+    c.innerHTML = `<div class="badge-ok">🕒 Deixado no balcão</div>
       ${rec.foto?`<img class="photo" src="${rec.foto}">`:'<div style="color:#999;font-size:14px;margin-bottom:10px">(sem foto)</div>'}
       <div class="djp">${rec.djp}</div>
       <div class="line"><b>Cliente</b><span>${rec.nome||"—"}</span></div>
