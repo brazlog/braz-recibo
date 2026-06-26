@@ -1,7 +1,7 @@
 <!doctype html><html lang="pt-BR"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Busca de comprovante — Braz Log (loja)</title>
+<title>Controle de comprovantes — Braz Log (loja)</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
   :root{ --verde:#1f9d2f; --verde-claro:#65F643; --preto:#0c0c0c; --cinza:#667; --linha:#e6e8ec; --bg:#f5f6f8; }
@@ -10,7 +10,7 @@
   header{background:var(--preto);color:#fff;padding:16px 18px;display:flex;align-items:center;gap:10px}
   header .logo{font-weight:800;font-size:17px}.logo b{color:var(--verde-claro)}
   header .tag{margin-left:auto;font-size:12px;color:#9aa;letter-spacing:.06em;text-transform:uppercase}
-  .wrap{max-width:560px;margin:0 auto;padding:18px}
+  .wrap{max-width:920px;margin:0 auto;padding:18px}
   .card{background:#fff;border:1px solid var(--linha);border-radius:14px;padding:18px;margin-bottom:14px}
   label{display:block;font-size:12px;font-weight:700;color:#445;margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em}
   input{width:100%;font-size:17px;padding:13px;border:1.5px solid var(--linha);border-radius:10px;background:#fbfbfc}
@@ -18,6 +18,7 @@
   .row{display:flex;gap:10px;margin-top:12px}
   .btn{flex:1;font-size:16px;font-weight:700;padding:14px;border:none;border-radius:11px;background:var(--verde);color:#fff;cursor:pointer}
   .btn.ghost{background:#fff;color:var(--preto);border:1.5px solid var(--linha)}
+  .btn.sm{padding:10px 14px;font-size:14px;flex:0 0 auto}
   .btn:active{transform:translateY(1px)}
   #scanbox{margin-top:12px;border-radius:12px;overflow:hidden;display:none}
   .msg{font-size:14px;margin-top:12px;padding:11px;border-radius:10px;display:none}
@@ -30,8 +31,25 @@
   .res .line b{color:#445;font-weight:600}
   .badge-ok{display:inline-block;background:#eef7ef;border:1px solid #cfe9d2;color:var(--verde);font-weight:700;font-size:13px;padding:6px 12px;border-radius:999px;margin-bottom:10px}
   .hidden{display:none}
+  /* abas */
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tab{flex:1;text-align:center;padding:12px;border-radius:11px;border:1.5px solid var(--linha);background:#fff;font-weight:700;font-size:15px;cursor:pointer;color:#445}
+  .tab.on{background:var(--preto);color:#fff;border-color:var(--preto)}
+  /* tabela banco */
+  .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .toolbar input{flex:1;min-width:160px}
+  .count{font-size:13px;color:#667;margin:2px 0 10px}
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--linha);border-radius:12px}
+  table{width:100%;border-collapse:collapse;font-size:14px;background:#fff;min-width:560px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid #f0f2f5;white-space:nowrap}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#778;background:#fafbfc;position:sticky;top:0}
+  tbody tr{cursor:pointer}
+  tbody tr:active{background:#f3f9f4}
+  td.djp{font-family:'Courier New',monospace;font-weight:700}
+  td .cam{color:#999;font-size:12px}
+  .center{text-align:center;color:#778;padding:18px;font-size:14px}
 </style></head><body>
-<header><span class="logo">BRAZ<b>LOG</b></span><span class="tag">Busca · Loja</span></header>
+<header><span class="logo">BRAZ<b>LOG</b></span><span class="tag">Controle · Loja</span></header>
 <div class="wrap">
 
   <!-- LOGIN -->
@@ -42,34 +60,130 @@
     <div class="msg" id="login-msg"></div>
   </section>
 
-  <!-- BUSCA -->
-  <section id="busca" class="card hidden">
-    <label>Buscar pacote pelo código DJP</label>
-    <input id="djp" type="text" placeholder="DJP..." autocapitalize="characters">
-    <div class="row">
-      <button class="btn" id="btn-buscar">Buscar</button>
-      <button class="btn ghost" id="btn-scan">📷 Escanear</button>
+  <!-- APP (após login) -->
+  <div id="app" class="hidden">
+    <div class="tabs">
+      <div class="tab on" id="tab-banco">📋 Banco completo</div>
+      <div class="tab" id="tab-codigo">🔎 Buscar código</div>
     </div>
-    <div id="scanbox"></div>
-    <div class="msg" id="msg"></div>
-  </section>
 
-  <div id="resultado" class="res"></div>
+    <!-- BANCO COMPLETO -->
+    <section id="banco" class="card">
+      <div class="toolbar">
+        <input id="q" type="text" placeholder="Filtrar por nome, telefone ou DJP…">
+        <button class="btn sm" id="btn-filtrar">Filtrar</button>
+        <button class="btn sm ghost" id="btn-csv">⬇ CSV</button>
+        <button class="btn sm ghost" id="btn-sair">Sair</button>
+      </div>
+      <div class="count" id="count"></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Data / hora</th><th>Cliente</th><th>Telefone</th><th>DJP</th><th>Foto</th></tr></thead>
+          <tbody id="tbody"><tr><td class="center" colspan="5">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="row"><button class="btn ghost hidden" id="btn-mais">Carregar mais</button></div>
+    </section>
+
+    <!-- BUSCA POR CÓDIGO (balcão) -->
+    <section id="busca" class="card hidden">
+      <label>Buscar pacote pelo código DJP</label>
+      <input id="djp" type="text" placeholder="DJP..." autocapitalize="characters">
+      <div class="row">
+        <button class="btn" id="btn-buscar">Buscar</button>
+        <button class="btn ghost" id="btn-scan">📷 Escanear</button>
+      </div>
+      <div id="scanbox"></div>
+      <div class="msg" id="msg"></div>
+    </section>
+
+    <div id="resultado" class="res"></div>
+  </div>
 </div>
 
 <script>
 const $=id=>document.getElementById(id);
 let pass = localStorage.getItem("brazloja_pass") || "";
 let scanner = null;
+let pagina = 1, ultimoQ = "", semMais = false, carregados = [];
 
-if(pass){ $("login").classList.add("hidden"); $("busca").classList.remove("hidden"); }
+function mostrarApp(){ $("login").classList.add("hidden"); $("app").classList.remove("hidden"); listar(true); }
+if(pass){ mostrarApp(); }
 
 $("btn-entrar").addEventListener("click", ()=>{
   const v=$("pass").value.trim(); if(!v) return;
-  pass=v; localStorage.setItem("brazloja_pass", v);
-  $("login").classList.add("hidden"); $("busca").classList.remove("hidden");
+  pass=v; localStorage.setItem("brazloja_pass", v); mostrarApp();
 });
+$("btn-sair").addEventListener("click", ()=>{ localStorage.removeItem("brazloja_pass"); location.reload(); });
 
+// ---- abas ----
+$("tab-banco").addEventListener("click", ()=>switchTab("banco"));
+$("tab-codigo").addEventListener("click", ()=>switchTab("codigo"));
+function switchTab(t){
+  const banco = t==="banco";
+  $("tab-banco").classList.toggle("on", banco); $("tab-codigo").classList.toggle("on", !banco);
+  $("banco").classList.toggle("hidden", !banco); $("busca").classList.toggle("hidden", banco);
+  $("resultado").innerHTML="";
+}
+
+// ================= BANCO COMPLETO =================
+$("btn-filtrar").addEventListener("click", ()=>listar(true));
+$("q").addEventListener("keydown", e=>{ if(e.key==="Enter") listar(true); });
+$("btn-mais").addEventListener("click", ()=>listar(false));
+$("btn-csv").addEventListener("click", exportarCSV);
+
+async function listar(reset){
+  if(reset){ pagina=1; semMais=false; carregados=[]; ultimoQ=$("q").value.trim(); $("tbody").innerHTML='<tr><td class="center" colspan="5">Carregando…</td></tr>'; }
+  if(semMais) return;
+  try{
+    const r = await fetch(`/api/buscar?list=1&pass=${encodeURIComponent(pass)}&page=${pagina}&q=${encodeURIComponent(ultimoQ)}`);
+    if(r.status===401){ localStorage.removeItem("brazloja_pass"); location.reload(); return; }
+    const d = await r.json();
+    if(!d.ok){ $("tbody").innerHTML='<tr><td class="center" colspan="5">Erro ao carregar.</td></tr>'; return; }
+    if(reset && d.rows.length===0){ $("tbody").innerHTML='<tr><td class="center" colspan="5">Nenhum registro'+(ultimoQ?' pra "'+ultimoQ+'"':'')+'.</td></tr>'; renderCount(d); return; }
+    carregados = carregados.concat(d.rows);
+    renderTabela();
+    renderCount(d);
+    semMais = d.isLastPage;
+    $("btn-mais").classList.toggle("hidden", semMais);
+    pagina++;
+  }catch(e){ $("tbody").innerHTML='<tr><td class="center" colspan="5">Falha de rede.</td></tr>'; }
+}
+
+function renderCount(d){
+  const t = (d.total!=null) ? d.total+" registro(s) no total" : carregados.length+" carregado(s)";
+  $("count").textContent = (ultimoQ? 'Filtro: "'+ultimoQ+'" · ' : '') + t;
+}
+
+function renderTabela(){
+  const tb=$("tbody"); tb.innerHTML="";
+  carregados.forEach(rec=>{
+    const dt = rec.criado ? new Date(rec.criado).toLocaleString("pt-BR") : "—";
+    const tr=document.createElement("tr");
+    tr.innerHTML = `<td>${dt}</td><td>${esc(rec.nome)||"—"}</td><td>${esc(rec.telefone)||"—"}</td>
+      <td class="djp">${esc(rec.djp)||"—"}</td><td>${rec.tem_foto?'📷':'<span class="cam">—</span>'}</td>`;
+    tr.addEventListener("click", ()=>abrirDetalhe(rec.djp));
+    tb.appendChild(tr);
+  });
+}
+
+function abrirDetalhe(djp){ switchTab("codigo"); $("djp").value=djp; buscar(djp); window.scrollTo({top:0,behavior:"smooth"}); }
+
+function exportarCSV(){
+  if(!carregados.length){ alert("Nada carregado pra exportar."); return; }
+  const head=["Data/hora","Cliente","Telefone","DJP","Comprovante","Tem foto"];
+  const linhas=carregados.map(r=>[
+    r.criado?new Date(r.criado).toLocaleString("pt-BR"):"", r.nome||"", r.telefone||"", r.djp||"", r.recibo_id||"", r.tem_foto?"sim":"nao"
+  ].map(csvCell).join(";"));
+  const csv="﻿"+head.join(";")+"\n"+linhas.join("\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  a.download="comprovantes-brazlog.csv"; a.click();
+}
+function csvCell(v){ v=String(v); return /[";\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+function esc(s){ return s==null?"":String(s).replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c])); }
+
+// ================= BUSCA POR CÓDIGO (com foto) =================
 $("btn-buscar").addEventListener("click", ()=> buscar($("djp").value.trim()));
 $("djp").addEventListener("keydown", e=>{ if(e.key==="Enter") buscar($("djp").value.trim()); });
 
@@ -110,11 +224,11 @@ function render(recs){
     const c=document.createElement("div"); c.className="card";
     c.innerHTML = `<div class="badge-ok">🕒 Deixado no balcão</div>
       ${rec.foto?`<img class="photo" src="${rec.foto}">`:'<div style="color:#999;font-size:14px;margin-bottom:10px">(sem foto)</div>'}
-      <div class="djp">${rec.djp}</div>
-      <div class="line"><b>Cliente</b><span>${rec.nome||"—"}</span></div>
-      <div class="line"><b>Telefone</b><span>${rec.telefone||"—"}</span></div>
+      <div class="djp">${esc(rec.djp)}</div>
+      <div class="line"><b>Cliente</b><span>${esc(rec.nome)||"—"}</span></div>
+      <div class="line"><b>Telefone</b><span>${esc(rec.telefone)||"—"}</span></div>
       <div class="line"><b>Deixado em</b><span>${dt}</span></div>
-      <div class="line"><b>Comprovante</b><span>${rec.recibo_id||"—"}</span></div>`;
+      <div class="line"><b>Comprovante</b><span>${esc(rec.recibo_id)||"—"}</span></div>`;
     out.appendChild(c);
   });
 }
