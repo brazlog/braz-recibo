@@ -16,8 +16,8 @@ export async function onRequestPost({ request, env }) {
   for (const b of bipes) {
     if (!b || typeof b.codigo !== "string" || !/^[A-Z0-9-]{6,40}$/i.test(b.codigo)) continue;
     rows.push({
-      codigo: b.codigo, tipo: s(b.tipo), evento: s(b.evento), hora: s(b.hora),
-      aparelho: s(b.aparelho), tela: s(b.tela, 120), duplicado: !!b.duplicado, uid: s(b.uid)
+      codigo: b.codigo, tipo: s(b.tipo), operacao: s(b.operacao), evento: s(b.evento), hora: s(b.hora),
+      aparelho: s(b.aparelho), uid: s(b.uid)
     });
   }
   if (!rows.length) return json({ ok: false, error: "nenhum bipe valido" }, 400);
@@ -39,7 +39,7 @@ export async function onRequestGet({ request, env }) {
   if (request.headers.get("X-Bipe-Key") !== KEY) return json({ ok: false, error: "chave" }, 401);
   const dia = (new URL(request.url).searchParams.get("dia") || "").trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return json({ ok: false, error: "dia invalido" }, 400);
-  const q = `${NB}/api/v2/tables/${TBL}/records?where=(hora,like,${dia}%25)&limit=1000&fields=codigo,tipo,hora,aparelho`;
+  const q = `${NB}/api/v2/tables/${TBL}/records?where=(hora,like,${dia}%25)&limit=1000&fields=codigo,tipo,operacao,hora,aparelho`;
   let d;
   try { const r = await fetch(q, { headers: { "xc-token": TK } }); if (!r.ok) return json({ ok: false, error: "nocodb" }, 502); d = await r.json(); }
   catch (e) { return json({ ok: false, error: "rede" }, 502); }
