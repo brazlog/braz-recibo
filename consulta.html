@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consulta de Bipe</title>
+<style>
+  :root{ --bg:#0c0c0c; --panel:#161616; --line:#2a2a2a; --ink:#f2f2f2; --mut:#9a9a9a;
+    --lime:#65F643; --amber:#ffb020; --red:#ff6060; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.45}
+  .wrap{max-width:720px;margin:0 auto;padding:28px 16px 70px}
+  h1{font-size:24px;margin:0 0 2px;font-weight:800}
+  h1 .g{color:var(--lime)}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:22px}
+  label{display:block;font-size:12px;color:var(--mut);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.08em}
+  input{width:100%;padding:13px 14px;font-size:17px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+  input:focus{outline:none;border-color:var(--lime)}
+  button{width:100%;margin-top:16px;padding:14px;font-size:16px;font-weight:700;border:0;border-radius:10px;background:var(--lime);color:#06250b;cursor:pointer}
+  button:active{transform:translateY(1px)}
+  .verdict{border-radius:12px;padding:16px 18px;margin:20px 0 10px;border:1px solid var(--line);background:var(--panel);border-left-width:4px}
+  .v-ok{border-left-color:var(--lime)} .v-hold{border-left-color:var(--amber)} .v-no{border-left-color:var(--red)}
+  .verdict .t{font-weight:800;font-size:16px;margin-bottom:4px}
+  .v-ok .t{color:var(--lime)} .v-hold .t{color:var(--amber)} .v-no .t{color:var(--red)}
+  .verdict .d{font-size:14px;color:#d6d6d6}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+  .op{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .op-ent{background:rgba(101,246,67,.14);color:var(--lime)}
+  .op-sai{background:rgba(88,176,255,.14);color:#58b0ff}
+  .op-nd{background:#222;color:var(--mut)}
+  .mono{font-family:"SF Mono",Consolas,monospace}
+  .ex{margin-top:38px;padding-top:18px;border-top:1px dashed var(--line)}
+  .ex h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin:0 0 10px}
+  .muted{color:var(--mut);font-size:13px}
+  .err{color:var(--red);font-size:14px;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Consulta de <span class="g">Bipe</span></h1>
+  <div class="sub">Onde está o pacote no nosso registro — entrada e saída, com data e hora.</div>
+
+  <label>Código do pacote (a mini-etiqueta DJP, ou a referência do cliente)</label>
+  <input id="codigo" placeholder="ex.: DJP00123456789" autocomplete="off" autocapitalize="characters">
+  <label>Senha do balcão</label>
+  <input id="pass" type="password" placeholder="senha" autocomplete="off">
+  <button onclick="buscar()">Procurar</button>
+
+  <div id="erro" class="err" style="display:none"></div>
+  <div id="resultado"></div>
+
+  <div class="ex">
+    <h2>Como fica um resultado (exemplo)</h2>
+    <div class="verdict v-ok">
+      <div class="t">✓ Recebido e repassado ao motorista</div>
+      <div class="d">Entrada em <b>17/10 18:52</b> · Saída em <b>18/10 09:15</b> — depois da saída, o pacote seguiu com a transportadora.</div>
+    </div>
+    <table>
+      <tr><th>Quando</th><th>Operação</th><th>Tipo</th><th>Código</th><th>Aparelho</th></tr>
+      <tr><td class="mono">17/10 18:52</td><td><span class="op op-ent">entrada</span></td><td>DJP</td><td class="mono">DJP00123456789</td><td>loja-01</td></tr>
+      <tr><td class="mono">18/10 09:15</td><td><span class="op op-sai">saída</span></td><td>DJP</td><td class="mono">DJP00123456789</td><td>loja-01</td></tr>
+    </table>
+    <p class="muted" style="margin-top:12px">Dica: procure pela <b>DJP</b> (a mini-etiqueta que a loja cola) — ela aparece na entrada <i>e</i> na saída. A referência do cliente aparece só na entrada.</p>
+  </div>
+</div>
+
+<script>
+  try { document.getElementById('pass').value = localStorage.getItem('bipe_pass') || ''; } catch(e){}
+  function fmt(h){ // "2026-10-17 18:52:41" -> "17/10 18:52"
+    const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/.exec(h||''); return m ? `${m[3]}/${m[2]} ${m[4]}:${m[5]}` : (h||'');
+  }
+  async function buscar(){
+    const codigo = document.getElementById('codigo').value.trim().toUpperCase();
+    const pass = document.getElementById('pass').value;
+    const erro = document.getElementById('erro'), res = document.getElementById('resultado');
+    erro.style.display='none'; res.innerHTML='';
+    if (!codigo){ erro.textContent='Digite o código.'; erro.style.display='block'; return; }
+    try { localStorage.setItem('bipe_pass', pass); } catch(e){}
+    res.innerHTML = '<p class="muted">Procurando…</p>';
+    let d;
+    try {
+      const r = await fetch(`/api/bipe?codigo=${encodeURIComponent(codigo)}&pass=${encodeURIComponent(pass)}`);
+      d = await r.json();
+      if (r.status === 401){ res.innerHTML=''; erro.textContent='Senha incorreta.'; erro.style.display='block'; return; }
+    } catch(e){ res.innerHTML=''; erro.textContent='Sem conexão. Tente de novo.'; erro.style.display='block'; return; }
+    if (!d.ok){ res.innerHTML=''; erro.textContent='Erro: '+(d.error||'desconhecido'); erro.style.display='block'; return; }
+
+    const rows = d.bipes || [];
+    const ent = rows.filter(b=>b.operacao==='entrada');
+    const sai = rows.filter(b=>b.operacao==='saida');
+    let v;
+    if (rows.length===0){
+      v = `<div class="verdict v-no"><div class="t">✕ Não encontrado</div><div class="d">Esse código não foi bipado por nós. (Só aparecem pacotes bipados a partir do início do sistema.)</div></div>`;
+    } else if (ent.length && sai.length){
+      v = `<div class="verdict v-ok"><div class="t">✓ Recebido e repassado ao motorista</div><div class="d">Entrada em <b>${fmt(ent[0].hora)}</b> · Saída em <b>${fmt(sai[sai.length-1].hora)}</b>. Depois da saída, seguiu com a transportadora.</div></div>`;
+    } else if (ent.length){
+      v = `<div class="verdict v-hold"><div class="t">● Recebido, ainda não saiu</div><div class="d">Entrada em <b>${fmt(ent[0].hora)}</b>. Sem registro de saída — ainda está conosco ou não foi coletado.</div></div>`;
+    } else {
+      v = `<div class="verdict v-hold"><div class="t">● Só há registro de saída</div><div class="d">Saída em <b>${fmt(sai[0].hora)}</b>, sem entrada registrada. Verificar.</div></div>`;
+    }
+    const tr = rows.map(b=>{
+      const cls = b.operacao==='entrada'?'op-ent':b.operacao==='saida'?'op-sai':'op-nd';
+      const lab = b.operacao||'—';
+      return `<tr><td class="mono">${fmt(b.hora)}</td><td><span class="op ${cls}">${lab}</span></td><td>${b.tipo||''}</td><td class="mono">${b.codigo||''}</td><td>${b.aparelho||''}</td></tr>`;
+    }).join('');
+    res.innerHTML = v + `<table><tr><th>Quando</th><th>Operação</th><th>Tipo</th><th>Código</th><th>Aparelho</th></tr>${tr}</table>`;
+  }
+  document.getElementById('codigo').addEventListener('keydown', e=>{ if(e.key==='Enter') buscar(); });
+  document.getElementById('pass').addEventListener('keydown', e=>{ if(e.key==='Enter') buscar(); });
+</script>
+</body>
+</html>

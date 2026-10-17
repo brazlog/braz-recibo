@@ -32,12 +32,29 @@ export async function onRequestPost({ request, env }) {
   return json({ ok: true, saved: rows.length });
 }
 
-// Contagem do dia (uso da loja) — GET /api/bipe?dia=2026-10-15  (mesma chave no header)
+// GET /api/bipe?codigo=DJP...&pass=...  → consulta de balcão (senha STAFF_PASS): acha entrada/saída do pacote.
+// GET /api/bipe?dia=2026-10-15  (header X-Bipe-Key) → contagem do dia (uso interno).
 export async function onRequestGet({ request, env }) {
   const NB = env.NOCODB_URL, TK = env.NOCODB_TOKEN, TBL = env.NOCODB_TABLE_BIPES, KEY = env.BIPE_KEY;
-  if (!NB || !TK || !TBL || !KEY) return json({ ok: false, error: "config ausente" }, 500);
+  if (!NB || !TK || !TBL) return json({ ok: false, error: "config ausente" }, 500);
+  const url = new URL(request.url);
+
+  // --- consulta por código (balcão) ---
+  const codigo = (url.searchParams.get("codigo") || "").trim().toUpperCase();
+  if (codigo) {
+    const PASS = env.STAFF_PASS;
+    if (!PASS || (url.searchParams.get("pass") || "") !== PASS) return json({ ok: false, error: "senha" }, 401);
+    if (!/^[A-Z0-9-]{3,40}$/.test(codigo)) return json({ ok: false, error: "codigo invalido" }, 400);
+    const q = `${NB}/api/v2/tables/${TBL}/records?where=(codigo,like,%25${codigo}%25)&limit=200&sort=hora&fields=codigo,tipo,operacao,hora,aparelho`;
+    let d;
+    try { const r = await fetch(q, { headers: { "xc-token": TK } }); if (!r.ok) return json({ ok: false, error: "nocodb" }, 502); d = await r.json(); }
+    catch (e) { return json({ ok: false, error: "rede" }, 502); }
+    return json({ ok: true, codigo, total: (d.list || []).length, bipes: d.list || [] });
+  }
+
+  // --- contagem do dia (interno) ---
   if (request.headers.get("X-Bipe-Key") !== KEY) return json({ ok: false, error: "chave" }, 401);
-  const dia = (new URL(request.url).searchParams.get("dia") || "").trim();
+  const dia = (url.searchParams.get("dia") || "").trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return json({ ok: false, error: "dia invalido" }, 400);
   const q = `${NB}/api/v2/tables/${TBL}/records?where=(hora,like,${dia}%25)&limit=1000&fields=codigo,tipo,operacao,hora,aparelho`;
   let d;
